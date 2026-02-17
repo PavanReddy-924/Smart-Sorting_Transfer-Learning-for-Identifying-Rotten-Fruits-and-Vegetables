@@ -1,1 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SmartSort — Rotten Fruit & Vegetable Detector</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --green: #2ecc71;
+      --red:   #e74c3c;
+      --dark:  #0d0d0d;
+      --card:  #161616;
+      --border:#2a2a2a;
+      --text:  #e8e8e8;
+      --muted: #999;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* ═══ NAV ═══ */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.1rem 3rem;
+      background: rgba(10,10,10,0.8);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.6rem; letter-spacing: 3px;
+      background: linear-gradient(90deg, var(--green), #a8ff78);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .nav-links { display: flex; gap: 0.3rem; align-items: center; list-style: none; }
+
+    .nav-links a {
+      text-decoration: none; color: var(--text);
+      font-size: 0.88rem; font-weight: 500;
+      padding: 6px 16px; border-radius: 6px;
+      transition: color 0.2s; position: relative;
+    }
+
+    .nav-links a::after {
+      content: ''; position: absolute; bottom: 2px; left: 50%;
+      transform: translateX(-50%); width: 0; height: 2px;
+      background: var(--green); border-radius: 2px; transition: width 0.3s;
+    }
+
+    .nav-links a:hover::after, .nav-links a.active::after { width: 60%; }
+    .nav-links a:hover, .nav-links a.active { color: var(--green); }
+
+    .nav-links .btn-predict {
+      background: var(--green); color: #000 !important;
+      font-weight: 600; padding: 7px 20px; border-radius: 8px;
+    }
+    .nav-links .btn-predict::after { display: none; }
+    .nav-links .btn-predict:hover { opacity: 0.85; color: #000 !important; }
+
+    /* Hamburger */
+    .hamburger {
+      display: none; flex-direction: column; gap: 5px;
+      cursor: pointer; background: none; border: none; padding: 4px;
+    }
+    .hamburger span {
+      display: block; width: 24px; height: 2px;
+      background: var(--text); border-radius: 2px; transition: all 0.3s;
+    }
+    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity: 0; }
+    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .mobile-menu {
+      display: none; position: fixed; top: 64px; left: 0; right: 0; z-index: 998;
+      background: rgba(13,13,13,0.97); backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem; flex-direction: column; gap: 0.5rem;
+    }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a {
+      text-decoration: none; color: var(--text); font-size: 1rem;
+      padding: 10px 0; border-bottom: 1px solid var(--border); transition: color 0.2s;
+    }
+    .mobile-menu a:hover { color: var(--green); }
+    .mobile-menu a:last-child { border-bottom: none; }
+
+    /* ═══ HERO ═══ */
+    #home {
+      position: relative; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; overflow: hidden;
+    }
+
+    .hero-bg {
+      position: absolute; inset: 0;
+      background:
+        linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.75) 100%),
+        url('https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=1600&q=80') center/cover no-repeat;
+    }
+
+    .hero-content {
+      position: relative; z-index: 1;
+      padding: 2rem 1.5rem; max-width: 700px;
+      animation: fadeUp 0.8s ease both;
+    }
+
+    .hero-tag {
+      display: inline-block; font-size: 0.75rem; letter-spacing: 3px;
+      text-transform: uppercase; color: var(--green);
+      border: 1px solid rgba(46,204,113,0.4); padding: 5px 18px;
+      border-radius: 20px; margin-bottom: 1.5rem;
+      background: rgba(46,204,113,0.08); backdrop-filter: blur(8px);
+    }
+
+    .hero h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3.2rem, 9vw, 6.5rem);
+      line-height: 0.95; letter-spacing: 2px; margin-bottom: 1.2rem;
+    }
+    .hero h1 span { color: var(--green); }
+
+    .hero p {
+      color: rgba(255,255,255,0.75); font-size: 1.05rem; line-height: 1.8;
+      margin-bottom: 2.5rem; max-width: 520px; margin-left: auto; margin-right: auto;
+    }
+
+    .hero-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    .btn-primary {
+      padding: 0.85rem 2.2rem; background: var(--green); color: #000;
+      font-weight: 700; font-size: 0.92rem; border: none; border-radius: 10px;
+      cursor: pointer; text-decoration: none; transition: transform 0.2s, opacity 0.2s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); opacity: 0.9; }
+
+    .btn-outline {
+      padding: 0.85rem 2.2rem; background: transparent; color: #fff;
+      font-weight: 500; font-size: 0.92rem;
+      border: 1px solid rgba(255,255,255,0.35); border-radius: 10px;
+      cursor: pointer; text-decoration: none; transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-outline:hover { border-color: var(--green); color: var(--green); }
+
+    .scroll-hint {
+      position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
+      z-index: 1; display: flex; flex-direction: column; align-items: center;
+      gap: 6px; color: rgba(255,255,255,0.4); font-size: 0.72rem;
+      letter-spacing: 2px; text-transform: uppercase;
+      animation: float 2s ease-in-out infinite;
+    }
+    .scroll-hint svg { width: 18px; opacity: 0.5; }
+
+    /* ═══ STATS ═══ */
+    .stats-strip {
+      display: flex; justify-content: center; flex-wrap: wrap;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      background: var(--card);
+    }
+    .stat {
+      text-align: center; padding: 2.5rem 3rem;
+      border-right: 1px solid var(--border); flex: 1; min-width: 130px;
+    }
+    .stat:last-child { border-right: none; }
+    .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 2.8rem; color: var(--green); line-height: 1; }
+    .stat-label { font-size: 0.78rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; }
+
+    /* ═══ ABOUT ═══ */
+    #about {
+      padding: 6rem 1.5rem; max-width: 1100px;
+      margin: 0 auto; border-top: 1px solid var(--border);
+    }
+
+    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+
+    .about-img { border-radius: 20px; overflow: hidden; border: 1px solid var(--border); aspect-ratio: 4/3; }
+    .about-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+    .about-img:hover img { transform: scale(1.05); }
+
+    .section-tag { display: inline-block; font-size: 0.72rem; letter-spacing: 3px; text-transform: uppercase; color: var(--green); margin-bottom: 0.8rem; }
+    .section-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: 1px; margin-bottom: 0.6rem; }
+    .section-sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; line-height: 1.7; }
+
+    .feature-list { display: flex; flex-direction: column; gap: 1rem; }
+    .feature-item {
+      display: flex; gap: 1rem; align-items: flex-start;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1rem 1.2rem; transition: border-color 0.3s;
+    }
+    .feature-item:hover { border-color: var(--green); }
+    .feature-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
+    .feature-info h4 { font-size: 0.92rem; font-weight: 600; margin-bottom: 3px; }
+    .feature-info p  { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+
+    /* ═══ PREDICT ═══ */
+    #predict { padding: 6rem 1.5rem; max-width: 720px; margin: 0 auto; border-top: 1px solid var(--border); }
+
+    .upload-card {
+      background: var(--card); border: 2px dashed var(--border);
+      border-radius: 20px; padding: 3rem 2rem; text-align: center;
+      cursor: pointer; transition: border-color 0.3s, background 0.3s;
+    }
+    .upload-card:hover, .upload-card.dragging { border-color: var(--green); background: rgba(46,204,113,0.04); }
+
+    .upload-icon {
+      width: 68px; height: 68px; background: rgba(46,204,113,0.1);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.2rem; font-size: 1.9rem; transition: transform 0.3s;
+    }
+    .upload-card:hover .upload-icon { transform: scale(1.1) rotate(-5deg); }
+    .upload-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.4rem; }
+    .upload-hint { color: var(--muted); font-size: 0.85rem; }
+    .upload-hint span { color: var(--green); font-weight: 500; cursor: pointer; }
+    #file-input { display: none; }
+
+    #preview-area { display: none; margin-top: 1.5rem; }
+    .preview-img-wrap {
+      position: relative; border-radius: 16px; overflow: hidden;
+      border: 1px solid var(--border); max-height: 340px;
+    }
+    #preview-img { width: 100%; max-height: 340px; object-fit: cover; display: block; }
+    .preview-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%); }
+    .preview-filename { position: absolute; bottom: 12px; left: 16px; font-size: 0.8rem; color: #fff; }
+
+    #analyze-btn {
+      display: none; width: 100%; margin-top: 1rem; padding: 1rem;
+      background: var(--green); color: #000; font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.2rem; letter-spacing: 2px; border: none; border-radius: 12px;
+      cursor: pointer; transition: transform 0.2s, opacity 0.2s;
+    }
+    #analyze-btn:hover { transform: translateY(-2px); opacity: 0.9; }
+    #analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .loader { display: none; text-align: center; padding: 2rem; }
+    .loader-dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 1rem; }
+    .loader-dots span {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--green); animation: bounce 1.2s infinite;
+    }
+    .loader-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loader-dots span:nth-child(3) { animation-delay: 0.4s; }
+    .loader-text { color: var(--muted); font-size: 0.9rem; }
+
+    #result-card {
+      display: none; margin-top: 1.5rem;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; overflow: hidden; animation: fadeUp 0.5s ease both;
+    }
+
+    .result-header {
+      padding: 1.5rem 2rem; display: flex; align-items: center;
+      justify-content: space-between; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 0.5rem;
+    }
+    .result-label { font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem; letter-spacing: 1px; }
+    .result-badge { padding: 6px 18px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+    .badge-fresh  { background: rgba(46,204,113,0.15); color: var(--green); border: 1px solid rgba(46,204,113,0.3); }
+    .badge-rotten { background: rgba(231,76,60,0.15);  color: var(--red);   border: 1px solid rgba(231,76,60,0.3); }
+
+    .result-body { padding: 1.5rem 2rem; }
+    .conf-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.5rem; }
+    .conf-bar-wrap { background: var(--border); border-radius: 999px; height: 8px; overflow: hidden; margin-bottom: 0.6rem; }
+    .conf-bar { height: 100%; border-radius: 999px; transition: width 1s cubic-bezier(0.4,0,0.2,1); width: 0%; }
+    .bar-fresh  { background: linear-gradient(90deg, #27ae60, var(--green)); }
+    .bar-rotten { background: linear-gradient(90deg, #c0392b, var(--red)); }
+    .conf-value { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; margin-bottom: 1.5rem; }
+
+    .top3-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.8rem; }
+    .top3-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .top3-item { display: flex; align-items: center; gap: 1rem; }
+    .top3-name { font-size: 0.82rem; width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+    .top3-bar-wrap { flex: 1; background: var(--border); border-radius: 999px; height: 5px; overflow: hidden; }
+    .top3-bar { height: 100%; border-radius: 999px; background: var(--green); opacity: 0.6; }
+    .top3-pct { font-size: 0.78rem; color: var(--muted); width: 45px; text-align: right; flex-shrink: 0; }
+
+    #try-again {
+      display: none; width: 100%; margin-top: 1rem; padding: 0.8rem;
+      background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem; border: 1px solid var(--border); border-radius: 12px;
+      cursor: pointer; transition: color 0.2s, border-color 0.2s;
+    }
+    #try-again:hover { color: var(--text); border-color: var(--text); }
+
+    .error-msg {
+      display: none; background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3);
+      border-radius: 12px; padding: 1rem 1.5rem; color: var(--red);
+      font-size: 0.9rem; margin-top: 1rem; text-align: center;
+    }
+
+    /* ═══ CONTACT ═══ */
+    #contact { padding: 6rem 1.5rem; max-width: 600px; margin: 0 auto; text-align: center; border-top: 1px solid var(--border); }
+    .contact-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 3rem 2rem; margin-top: 2rem; }
+    .contact-card p { color: var(--muted); font-size: 0.92rem; line-height: 1.7; margin-bottom: 1.5rem; }
+    .contact-card a {
+      display: inline-block; padding: 0.8rem 2rem;
+      background: var(--green); color: #000; font-weight: 700;
+      border-radius: 10px; text-decoration: none; font-size: 0.9rem;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .contact-card a:hover { opacity: 0.85; transform: translateY(-2px); }
+
+    /* ═══ FOOTER ═══ */
+    footer { text-align: center; padding: 1.8rem; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.82rem; }
+    footer span { color: var(--green); }
+
+    /* ═══ ANIMATIONS ═══ */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+    @keyframes float {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50%       { transform: translateX(-50%) translateY(8px); }
+    }
+
+    /* ═══ RESPONSIVE ═══ */
+    @media (max-width: 768px) {
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { display: none; }
+      .hamburger { display: flex; }
+      .about-grid { grid-template-columns: 1fr; gap: 2rem; }
+      .about-img { display: none; }
+      .stat { padding: 1.8rem 1.5rem; }
+      .stat-num { font-size: 2.2rem; }
+      #predict, #about, #contact { padding: 4rem 1.2rem; }
+    }
+
+    @media (max-width: 480px) {
+      .hero-btns { flex-direction: column; align-items: center; }
+      .btn-primary, .btn-outline { width: 100%; text-align: center; }
+      .top3-name { width: 120px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">SmartSort</div>
+  <ul class="nav-links">
+    <li><a href="#home" class="active">Home</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#predict" class="btn-predict">Predict</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+  <button class="hamburger" id="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<div class="mobile-menu" id="mobile-menu">
+  <a href="#home"    onclick="closeMobile()">Home</a>
+  <a href="#about"   onclick="closeMobile()">About</a>
+  <a href="#predict" onclick="closeMobile()">Predict</a>
+  <a href="#contact" onclick="closeMobile()">Contact</a>
+</div>
+
+<!-- HERO -->
+<section id="home">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <div class="hero-tag">AI · Transfer Learning · VGG16</div>
+    <h1 class="hero">DETECT <span>ROTTEN</span><br>INSTANTLY</h1>
+    <p>Upload any fruit or vegetable image. Our deep learning model identifies whether it's fresh or rotten across 28 classes — instantly.</p>
+    <div class="hero-btns">
+      <a href="#predict" class="btn-primary">🔍 Try It Now</a>
+      <a href="#about"   class="btn-outline">Learn More</a>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+    scroll
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-strip">
+  <div class="stat"><div class="stat-num">28</div><div class="stat-label">Classes</div></div>
+  <div class="stat"><div class="stat-num">VGG16</div><div class="stat-label">Base Model</div></div>
+  <div class="stat"><div class="stat-num">224px</div><div class="stat-label">Input Size</div></div>
+  <div class="stat"><div class="stat-num">AI</div><div class="stat-label">Powered</div></div>
+</div>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="about-grid">
+    <div class="about-img">
+      <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80" alt="Fruits and Vegetables"/>
+    </div>
+    <div class="about-text">
+      <div class="section-tag">About the Project</div>
+      <h2 class="section-title">SMART SORTING<br>TECHNOLOGY</h2>
+      <p class="section-sub">SmartSort uses transfer learning with VGG16 to detect rotten fruits and vegetables across 28 classes — built for food processing plants, supermarkets, and smart homes.</p>
+      <div class="feature-list">
+        <div class="feature-item">
+          <div class="feature-icon">🏭</div>
+          <div class="feature-info">
+            <h4>Food Processing Plants</h4>
+            <p>Automate sorting on conveyor belts to reduce human error and labor costs.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">🛒</div>
+          <div class="feature-info">
+            <h4>Supermarkets</h4>
+            <p>Scan incoming shipments in real-time to ensure only fresh produce hits shelves.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">🏠</div>
+          <div class="feature-info">
+            <h4>Smart Homes</h4>
+            <p>Monitor fridge contents and alert users when produce starts to spoil.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PREDICT -->
+<section id="predict">
+  <div class="section-tag">AI Detection</div>
+  <h2 class="section-title">ANALYZE YOUR<br>PRODUCE</h2>
+  <p class="section-sub">Drop or upload an image of any fruit or vegetable and get an instant AI-powered freshness report.</p>
+
+  <div class="upload-card" id="upload-card">
+    <input type="file" id="file-input" accept=".png,.jpg,.jpeg,.webp"/>
+    <div class="upload-icon">🍎</div>
+    <div class="upload-title">Drop your image here</div>
+    <div class="upload-hint">or <span onclick="document.getElementById('file-input').click()">browse files</span> &nbsp;·&nbsp; PNG, JPG, JPEG, WEBP</div>
+  </div>
+
+  <div id="preview-area">
+    <div class="preview-img-wrap">
+      <img id="preview-img" src="" alt="Preview"/>
+      <div class="preview-overlay"></div>
+      <div class="preview-filename" id="preview-filename"></div>
+    </div>
+  </div>
+
+  <button id="analyze-btn">🔍 &nbsp; Analyze Image</button>
+
+  <div class="loader" id="loader">
+    <div class="loader-dots"><span></span><span></span><span></span></div>
+    <div class="loader-text">Analyzing with AI...</div>
+  </div>
+
+  <div class="error-msg" id="error-msg"></div>
+
+  <div id="result-card">
+    <div class="result-header">
+      <div class="result-label" id="result-label">—</div>
+      <div class="result-badge" id="result-badge">—</div>
+    </div>
+    <div class="result-body">
+      <div class="conf-label">Confidence Score</div>
+      <div class="conf-bar-wrap"><div class="conf-bar" id="conf-bar"></div></div>
+      <div class="conf-value" id="conf-value">—</div>
+      <div class="top3-title">Top Predictions</div>
+      <div class="top3-list" id="top3-list"></div>
+    </div>
+  </div>
+
+  <button id="try-again">↺ &nbsp; Try Another Image</button>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="section-tag">Get In Touch</div>
+  <h2 class="section-title">CONTACT US</h2>
+  <div class="contact-card">
+    <p>Interested in implementing SmartSort in your facility or learning more about the technology? We'd love to hear from you.</p>
+    <a href="mailto:smartsort@example.com">✉️ &nbsp; Send us an Email</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>© 2025 <span>SmartSort</span> &nbsp;·&nbsp; Transfer Learning for Fruit & Vegetable Quality Detection</footer>
+
+<script>
+  // Mobile menu
+  const hamburger  = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobile-menu');
+  hamburger.addEventListener('click', () => {
+    hamburger.classList.toggle('open');
+    mobileMenu.classList.toggle('open');
+  });
+  function closeMobile() {
+    hamburger.classList.remove('open');
+    mobileMenu.classList.remove('open');
+  }
+
+  // Active nav on scroll
+  window.addEventListener('scroll', () => {
+    let current = '';
+    document.querySelectorAll('section[id]').forEach(s => {
+      if (window.scrollY >= s.offsetTop - 120) current = s.id;
+    });
+    document.querySelectorAll('.nav-links a').forEach(a => {
+      a.classList.remove('active');
+      if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+    });
+  });
+
+  // Upload logic
+  const uploadCard  = document.getElementById('upload-card');
+  const fileInput   = document.getElementById('file-input');
+  const previewArea = document.getElementById('preview-area');
+  const previewImg  = document.getElementById('preview-img');
+  const previewName = document.getElementById('preview-filename');
+  const analyzeBtn  = document.getElementById('analyze-btn');
+  const loader      = document.getElementById('loader');
+  const resultCard  = document.getElementById('result-card');
+  const tryAgain    = document.getElementById('try-again');
+  const errorMsg    = document.getElementById('error-msg');
+
+  let selectedFile = null;
+
+  uploadCard.addEventListener('dragover', e => { e.preventDefault(); uploadCard.classList.add('dragging'); });
+  uploadCard.addEventListener('dragleave', () => uploadCard.classList.remove('dragging'));
+  uploadCard.addEventListener('drop', e => {
+    e.preventDefault(); uploadCard.classList.remove('dragging');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+  uploadCard.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+  function handleFile(file) {
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewImg.src = e.target.result;
+      previewName.textContent = file.name;
+      previewArea.style.display  = 'block';
+      analyzeBtn.style.display   = 'block';
+      resultCard.style.display   = 'none';
+      tryAgain.style.display     = 'none';
+      errorMsg.style.display     = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  analyzeBtn.addEventListener('click', async () => {
+    if (!selectedFile) return;
+    analyzeBtn.disabled = true;
+    loader.style.display = 'block';
+    resultCard.style.display = 'none';
+    errorMsg.style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const res  = await fetch('/predict', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      showResult(data);
+    } catch (err) {
+      errorMsg.textContent = '⚠️ ' + err.message;
+      errorMsg.style.display = 'block';
+    } finally {
+      loader.style.display = 'none';
+      analyzeBtn.disabled  = false;
+    }
+  });
+
+  function showResult(data) {
+    const isFresh = data.condition === 'Fresh';
+    document.getElementById('result-label').textContent = data.predicted_class.replace(/_/g,' ').toUpperCase();
+
+    const badge = document.getElementById('result-badge');
+    badge.textContent = data.condition;
+    badge.className = 'result-badge ' + (isFresh ? 'badge-fresh' : 'badge-rotten');
+
+    document.getElementById('conf-value').textContent = data.confidence + '%';
+    const bar = document.getElementById('conf-bar');
+    bar.className = 'conf-bar ' + (isFresh ? 'bar-fresh' : 'bar-rotten');
+    setTimeout(() => { bar.style.width = data.confidence + '%'; }, 100);
+
+    const top3List = document.getElementById('top3-list');
+    top3List.innerHTML = '';
+    data.top3.forEach(item => {
+      top3List.innerHTML += `
+        <div class="top3-item">
+          <div class="top3-name">${item.label.replace(/_/g,' ')}</div>
+          <div class="top3-bar-wrap"><div class="top3-bar" style="width:${item.confidence}%"></div></div>
+          <div class="top3-pct">${item.confidence}%</div>
+        </div>`;
+    });
+
+    resultCard.style.display = 'block';
+    tryAgain.style.display   = 'block';
+    analyzeBtn.style.display = 'none';
+  }
+
+  tryAgain.addEventListener('click', () => {
+    selectedFile = null; fileInput.value = '';
+    previewArea.style.display = 'none';
+    analyzeBtn.style.display  = 'none';
+    resultCard.style.display  = 'none';
+    tryAgain.style.display    = 'none';
+    errorMsg.style.display    = 'none';
+  });
+</script>
+</body>
+</html>
