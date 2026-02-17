@@ -1,2 +1,2 @@
 pip install -r requirements.txt
-gdown --id PASTE_YOUR_FILE_ID_HERE -O healthy_vs_rotten.h5
+gdown --id https://drive.google.com/file/d/1OLL67cAvhtKDohx2WnHFwHEBVEZ_Egl0/view?usp=sharing -O healthy_vs_rotten.h5
